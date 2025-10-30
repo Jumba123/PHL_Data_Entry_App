@@ -154,20 +154,19 @@ def Team_Data_Entry_Form(current_date):
             else:
                 st.session_state['team_game_data'] = pd.concat([team_game_data, new_df], ignore_index=True)
 
-
+            st.dataframe(st.session_state['team_game_data'].style.hide(axis="index"))
             st.session_state['team_game_data'] = st.session_state['team_game_data'].reset_index(drop=True)
 
-            # Prepare CSV data without index for download
-            csv_data = st.session_state['team_game_data'].to_csv(index=False).encode('utf-8')
+        # Prepare CSV data without index for download
+        csv_data = st.session_state['team_game_data'].to_csv(index=False).encode('utf-8')
 
-            st.download_button(
-                label="Download Raw_Team_Data as CSV",
-                data=csv_data,
-                file_name=f'Raw_Team_Data-{current_date}.csv',
-                mime='text/csv',
-            )
-    if 'team_game_data' in st.session_state:
-        st.dataframe(st.session_state['team_game_data'].style.hide(axis="index"))
+        st.download_button(
+            label="Download Raw_Team_Data as CSV",
+            data=csv_data,
+            file_name=f'Raw_Team_Data-{current_date}.csv',
+            mime='text/csv',
+        )
+            
     else:
         st.warning("Please select both teams, week, and game number to continue.")
 
@@ -410,7 +409,7 @@ def main():
     'PHL_Teams' in st.session_state and not st.session_state['PHL_Teams'].empty,
     'PHL_Roster' in st.session_state and not st.session_state['PHL_Roster'].empty,
     'team_game_data' in st.session_state and not st.session_state['team_game_data'].empty,
-    'player_game_data' in st.session_state and not st.session_state['player_game_data'].empty]):
+    ]):
         Team_Data_Entry_Form(current_date)
         Player_Data_Entry_Form(current_date)
     else:
@@ -419,6 +418,5 @@ def main():
 if __name__ == "__main__":
     main()
 
-# streamlit run .\app.py
+# streamlit run .\PHL_Data_Entry_App.py
 # streamlit run e:/Python Programs/New_PHL/app.py
-
