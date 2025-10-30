@@ -166,8 +166,8 @@ def Team_Data_Entry_Form(current_date):
                 file_name=f'Raw_Team_Data-{current_date}.csv',
                 mime='text/csv',
             )
-        if 'team_game_data' in st.session_state:
-            st.dataframe(st.session_state['team_game_data'].style.hide(axis="index"))
+    if 'team_game_data' in st.session_state:
+        st.dataframe(st.session_state['team_game_data'].style.hide(axis="index"))
     else:
         st.warning("Please select both teams, week, and game number to continue.")
 
@@ -410,8 +410,7 @@ def main():
     'PHL_Teams' in st.session_state and not st.session_state['PHL_Teams'].empty,
     'PHL_Roster' in st.session_state and not st.session_state['PHL_Roster'].empty,
     'team_game_data' in st.session_state and not st.session_state['team_game_data'].empty,
-    'player_game_data' in st.session_state and not st.session_state['player_game_data'].empty
-]):
+    'player_game_data' in st.session_state and not st.session_state['player_game_data'].empty]):
         Team_Data_Entry_Form(current_date)
         Player_Data_Entry_Form(current_date)
     else:
@@ -422,3 +421,4 @@ if __name__ == "__main__":
 
 # streamlit run .\app.py
 # streamlit run e:/Python Programs/New_PHL/app.py
+
