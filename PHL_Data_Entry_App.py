@@ -104,11 +104,11 @@ def Team_Data_Entry_Form(current_date):
         if submitted:
             # Shutout logic
             if team1_goals == 0 and team2_goals > 0:
+                st.session_state['team1_shutout'] = "No"
+                st.session_state['team2_shutout'] = "Yes"
+            elif team2_goals == 0 and team1_goals > 0:
                 st.session_state['team1_shutout'] = "Yes"
                 st.session_state['team2_shutout'] = "No"
-            elif team2_goals == 0 and team1_goals > 0:
-                st.session_state['team2_shutout'] = "Yes"
-                st.session_state['team1_shutout'] = "No"
             else:
                 st.session_state['team1_shutout'] = "No"
                 st.session_state['team2_shutout'] = "No"
@@ -229,7 +229,8 @@ def Player_Data_Entry_Form(current_date):
         team1_goals = Team1_Game_Data['Goals'].iloc[0]
         team2_goals = Team2_Game_Data['Goals'].iloc[0]
 
-        Game_Result = Team1_Game_Data['Game_Result'].iloc[0]
+        Team1_Game_Result = Team1_Game_Data['Game_Result'].iloc[0]
+        Team2_Game_Result = Team2_Game_Data['Game_Result'].iloc[0]
         st.markdown(f"<h3 style='text-align: center;'>Game Result</h3>", unsafe_allow_html=True)
         st.markdown(
             f"<h5 style='text-align: center;'>{player_team1_code}({team1_goals}) - {player_team2_code}({team2_goals})</h5>",
@@ -298,7 +299,7 @@ def Player_Data_Entry_Form(current_date):
                 )
 
                 Plus_Minus = Team_1_Goals - Team1_Game_Data['Goals_Allowed'].iloc[0]
-                Shoutout = Team1_Game_Data['Shoutout'].iloc[0]
+                Team1_Shoutout = Team1_Game_Data['Shoutout'].iloc[0]
                 Team_Goals_Allowed = Team1_Game_Data['Goals_Allowed'].iloc[0]
                 Team_Shots_Allowed = Team1_Game_Data['Shots_Allowed'].iloc[0]
                 Team_GF = Team1_Game_Data['Goals'].iloc[0]
@@ -314,8 +315,8 @@ def Player_Data_Entry_Form(current_date):
                     "Goals": Team_1_Goals,
                     "Assists": Team_1_Assists,
                     "SOG": Team_1_Sog,
-                    "Game_Result": Game_Result,
-                    "Shoutout": Shoutout,
+                    "Game_Result": Team1_Game_Result,
+                    "Shoutout": Team1_Shoutout,
                     "Plus/Minus": Plus_Minus,
                     "Saves": Saves,
                     "Goalie_Goals Allowed": Goalie_Goals_Allowed,
@@ -373,7 +374,7 @@ def Player_Data_Entry_Form(current_date):
                 )
 
                 Plus_Minus = Team_2_Goals - Team2_Game_Data['Goals_Allowed'].iloc[0]
-                Shoutout = Team2_Game_Data['Shoutout'].iloc[0]
+                Team2_Shoutout = Team2_Game_Data['Shoutout'].iloc[0]
                 Team_Goals_Allowed = Team2_Game_Data['Goals_Allowed'].iloc[0]
                 Team_Shots_Allowed = Team2_Game_Data['Shots_Allowed'].iloc[0]
                 Team_GF = Team2_Game_Data['Goals'].iloc[0]
@@ -389,8 +390,8 @@ def Player_Data_Entry_Form(current_date):
                     "Goals": Team_2_Goals,
                     "Assists": Team_2_Assists,
                     "SOG": Team_2_Sog,
-                    "Game_Result": Game_Result,
-                    "Shoutout": Shoutout,
+                    "Game_Result": Team2_Game_Result,
+                    "Shoutout": Team2_Shoutout,
                     "Plus/Minus": Plus_Minus,
                     "Saves": Saves,
                     "Goalie_Goals Allowed": Goalie_Goals_Allowed,
@@ -417,7 +418,7 @@ def Player_Data_Entry_Form(current_date):
             st.dataframe(st.session_state.player_game_data)
 
         if not st.session_state.player_game_data.empty:
-            csv = st.session_state.player_game_data.to_csv(index=False).encode('utf-8')
+            csv = st.session_state.player_game_data.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
                 label="Download Raw_Player_Data as CSV",
                 data=csv,
@@ -471,3 +472,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# streamlit run .\PHL_Data_Entry_App.py
+# streamlit run e:/Python Programs/New_PHL/app.py
