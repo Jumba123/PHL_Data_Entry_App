@@ -2,6 +2,12 @@ from datetime import date
 import streamlit as st
 import pandas as pd
 
+def test_load_or_init_csv(url, session_key):
+    df = pd.read_csv(url)
+    st.session_state[session_key] = df
+    st.session_state[f"{session_key}_filename"] = url
+    return st.session_state[session_key]
+
 def load_or_init_csv(label, session_key):
     uploaded_file = st.file_uploader(label, type=["csv"])
     if uploaded_file is not None:
@@ -58,7 +64,7 @@ def Team_Data_Entry_Form(current_date):
 
     if team1_selection and team2_selection and Week and Game_Number:
         # Initialize session state keys if they don't exist
-        for key in ['team1_result', 'team2_result', 'team1_shutout', 'team2_shutout']:
+        for key in ['team1_shutout', 'team2_shutout']:
             if key not in st.session_state:
                 st.session_state[key] = None if 'result' in key else "No"
 
@@ -80,24 +86,7 @@ def Team_Data_Entry_Form(current_date):
                 team2_assists = st.number_input("Assists", min_value=0, step=1, key="team2_assists")
                 team2_shots = st.number_input("Shots", min_value=0, step=1, key="team2_shots")
                 team2_saves = st.number_input("Saves", min_value=0, step=1, key="team2_saves")
-                # Outside the form: compute and update team2_result dynamically and display
-                if st.session_state['team1_result'] == "Win_Reg":
-                    st.session_state['team2_result'] = "Loss_Reg"
-                elif st.session_state['team1_result'] == "Win_OT":
-                    st.session_state['team2_result'] = "Loss_OT"
-                elif st.session_state['team1_result'] == "Loss_Reg":
-                    st.session_state['team2_result'] = "Win_Reg"
-                elif st.session_state['team1_result'] == "Loss_OT":
-                    st.session_state['team2_result'] = "Win_OT"
-                elif st.session_state['team1_result'] == "Tie":
-                    st.session_state['team2_result'] = "Tie"
-                else:
-                    st.session_state['team2_result'] = None
-
-                # Show the automatic update message here to reflect changes immediately
-                if team1_selection and team2_selection and st.session_state['team1_result']:
-                    st.write(f"{team2_selection}'s result is automatically set to '{st.session_state['team2_result']}'.")
-
+                team2_result = st.selectbox(f"{team2_selection}'s Game Result", Game_Result, index=None, placeholder="Please Select Result", key="team2_result")
 
             submitted = st.form_submit_button("Submit")
         # Shutout logic (can be inside form or just after submit)
@@ -123,7 +112,7 @@ def Team_Data_Entry_Form(current_date):
                     "Assists": team1_assists,
                     "Shots": team1_shots,
                     "Saves": team1_saves,
-                    "Game_Result": st.session_state['team1_result'],
+                    "Game_Result": team1_result,
                     "Shoutout": st.session_state['team1_shutout'],
                     "Goals_Allowed": team2_goals,
                     "Assists_Allowed": team2_assists,
@@ -139,7 +128,7 @@ def Team_Data_Entry_Form(current_date):
                     "Assists": team2_assists,
                     "Shots": team2_shots,
                     "Saves": team2_saves,
-                    "Game_Result": st.session_state['team2_result'],
+                    "Game_Result": team2_result,
                     "Shoutout": st.session_state['team2_shutout'],
                     "Goals_Allowed": team1_goals,
                     "Assists_Allowed": team1_assists,
@@ -154,7 +143,6 @@ def Team_Data_Entry_Form(current_date):
             else:
                 st.session_state['team_game_data'] = pd.concat([team_game_data, new_df], ignore_index=True)
 
-            st.dataframe(st.session_state['team_game_data'].style.hide(axis="index"))
             st.session_state['team_game_data'] = st.session_state['team_game_data'].reset_index(drop=True)
 
         # Prepare CSV data without index for download
@@ -166,7 +154,10 @@ def Team_Data_Entry_Form(current_date):
             file_name=f'Raw_Team_Data-{current_date}.csv',
             mime='text/csv',
         )
-            
+        # Show updated team_game_data if wanted
+        if not team_game_data.empty:
+            if st.checkbox("Show Team Game Data Preview", key="show_team_data_after form"):
+                st.dataframe(team_game_data.style.hide(axis="index")) 
     else:
         st.warning("Please select both teams, week, and game number to continue.")
 
@@ -177,6 +168,7 @@ def Player_Data_Entry_Form(current_date):
     PHL_Teams = st.session_state.get('PHL_Teams', pd.DataFrame())
     PHL_Roster = st.session_state.get('PHL_Roster', pd.DataFrame())
     team_game_data = st.session_state.get('team_game_data', pd.DataFrame())
+    player_game_data = st.session_state.get('player_game_data', pd.DataFrame())
     if 'player_game_data' not in st.session_state:
         st.session_state.player_game_data = pd.DataFrame()
 
@@ -184,22 +176,14 @@ def Player_Data_Entry_Form(current_date):
     team_cols = st.columns(2)
     with team_cols[0]:
         player_team1_selection = st.selectbox(
-            "Choose Team #1", PHL_Teams['Team_Name'], index=None,
-            placeholder="Please Select Team", key="Team1_Player_Select"
-        )
+            "Choose Team #1", PHL_Teams['Team_Name'], index=None,placeholder="Please Select Team", key="Team1_Player_Select")
         player_team1_code = (
-            PHL_Teams.loc[PHL_Teams['Team_Name'] == player_team1_selection, 'Team_Code'].values[0]
-            if player_team1_selection else None
-        )
+            PHL_Teams.loc[PHL_Teams['Team_Name'] == player_team1_selection, 'Team_Code'].values[0])
     with team_cols[1]:
         player_team2_selection = st.selectbox(
-            "Choose Team #2", PHL_Teams['Team_Name'], index=None,
-            placeholder="Please Select Team", key="Team2_Player_Select"
-        )
+            "Choose Team #2", PHL_Teams['Team_Name'], index=None,placeholder="Please Select Team", key="Team2_Player_Select")
         player_team2_code = (
-            PHL_Teams.loc[PHL_Teams['Team_Name'] == player_team2_selection, 'Team_Code'].values[0]
-            if player_team2_selection else None
-        )
+            PHL_Teams.loc[PHL_Teams['Team_Name'] == player_team2_selection, 'Team_Code'].values[0])
 
     # Week and Game Number inputs
     detail_cols = st.columns(2)
@@ -224,18 +208,14 @@ def Player_Data_Entry_Form(current_date):
         Team2_Game_Data = team_game_data.loc[filter_condition_team2]
         Team_1_Roster = PHL_Roster.loc[PHL_Roster['Team_Name'] == player_team1_selection].sort_values("Skater_Name")
         Team_2_Roster = PHL_Roster.loc[PHL_Roster['Team_Name'] == player_team2_selection].sort_values("Skater_Name")
-        Puck_Positions = ('C', 'LW', 'RW', 'LD', 'RD', 'G')
+        Puck_Positions = ('LW', 'C', 'RW', 'LD', 'RD', 'G')
 
         team1_goals = Team1_Game_Data['Goals'].iloc[0]
         team2_goals = Team2_Game_Data['Goals'].iloc[0]
 
         Team1_Game_Result = Team1_Game_Data['Game_Result'].iloc[0]
         Team2_Game_Result = Team2_Game_Data['Game_Result'].iloc[0]
-        st.markdown(f"<h3 style='text-align: center;'>Game Result</h3>", unsafe_allow_html=True)
-        st.markdown(
-            f"<h5 style='text-align: center;'>{player_team1_code}({team1_goals}) - {player_team2_code}({team2_goals})</h5>",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<h3 style='text-align: center;'>Game Result - {player_team1_selection}({team1_goals}) - {player_team2_selection}({team2_goals})</h3>", unsafe_allow_html=True)
 
         # Initialize row counts if needed
         if 'team1_rows' not in st.session_state:
@@ -257,47 +237,29 @@ def Player_Data_Entry_Form(current_date):
             for i in range(st.session_state.team1_rows):
                 st.markdown("---")
                 st.markdown(f"<h5 style='text-align: center;'>Player #{i + 1}</h5>", unsafe_allow_html=True)
+                
+                with st.container(horizontal=True,horizontal_alignment="center" ):
+                    Team_1_Skater_Name = st.selectbox(
+                        "Name", Team_1_Roster["Skater_Name"], placeholder="None", key=f"Teams1_Player_Name_Select_{Week}_{Game_Number}_{i}")
+                    Team_1_Skater_Position = st.selectbox(
+                        "Pos", Puck_Positions, placeholder=None,key=f"Teams1_Player_Pos_Select_{Week}_{Game_Number}_{i}")
+                if Team_1_Skater_Position == "G":
+                    goalie_cols = st.columns(gap="medium", spec=[7, 5, 5])
+                    Goalie_Goals_Allowed = cols[0].number_input("Goals Allowed - Goalie Only", min_value=0, step=1,key=f"team1_goalie_goals_allowed_{Week}_{Game_Number}_{i}")
+                    Goalie_Shots_Allowed = cols[1].number_input("Shots Allowed - Goalie Only", min_value=0, step=1,key=f"team1_goalie_shots_allowed_{Week}_{Game_Number}_{i}")
+                    Goalie_Saves = cols[2].number_input("Saves - Goalie Only", min_value=0, step=1,key=f"team1_saves_{Week}_{Game_Number}_{i}")
+                else:
+                    Goalie_Goals_Allowed = None
+                    Goalie_Shots_Allowed = None
+                    Goalie_Saves = None
+                Team_1_Skater_Type = PHL_Roster.loc[PHL_Roster['Skater_Name'] == Team_1_Skater_Name]['Skater_Type'].values[0]
+
                 cols = st.columns(gap="medium", spec=[7, 5, 5])
+                Team_1_Goals = cols[0].number_input("Goals", min_value=0, step=1,key=f"team1_g_{Week}_{Game_Number}_{i}")
+                Team_1_Assists = cols[1].number_input("Assists", min_value=0, step=1,key=f"team1_a_{Week}_{Game_Number}_{i}")
+                Team_1_Sog = cols[2].number_input("SOG", min_value=0, step=1,key=f"team1_sog_{Week}_{Game_Number}_{i}")
 
-                Team_1_Skater_Name = cols[0].selectbox(
-                    "Name", Team_1_Roster["Skater_Name"],
-                    key=f"Teams1_Player_Name_Select_{Week}_{Game_Number}_{i}"
-                )
-                Team_1_Skater_Type = cols[0].selectbox(
-                    "Type", ("Skater", "Goalie"),
-                    key=f"Teams1_Player_Type_Select_{Week}_{Game_Number}_{i}"
-                )
-                Team_1_Skater_Position = cols[0].selectbox(
-                    "Pos", Puck_Positions,
-                    key=f"Teams1_Player_Pos_Select_{Week}_{Game_Number}_{i}"
-                )
-
-                Team_1_Goals = cols[1].number_input(
-                    "Goals", min_value=0, step=1,
-                    key=f"team1_g_{Week}_{Game_Number}_{i}"
-                )
-                Team_1_Assists = cols[1].number_input(
-                    "Assists", min_value=0, step=1,
-                    key=f"team1_a_{Week}_{Game_Number}_{i}"
-                )
-                Team_1_Sog = cols[1].number_input(
-                    "SOG", min_value=0, step=1,
-                    key=f"team1_sog_{Week}_{Game_Number}_{i}"
-                )
-
-                Goalie_Goals_Allowed = cols[2].number_input(
-                    "Goals Allowed - Goalie Only", min_value=0, step=1,
-                    key=f"team1_goalie_goals_allowed_{Week}_{Game_Number}_{i}"
-                )
-                Goalie_Shots_Allowed = cols[2].number_input(
-                    "Shots Allowed - Goalie Only", min_value=0, step=1,
-                    key=f"team1_goalie_shots_allowed_{Week}_{Game_Number}_{i}"
-                )
-                Saves = cols[2].number_input(
-                    "Saves - Goalie Only", min_value=0, step=1,
-                    key=f"team1_saves_{Week}_{Game_Number}_{i}"
-                )
-
+                
                 Plus_Minus = Team_1_Goals - Team1_Game_Data['Goals_Allowed'].iloc[0]
                 Team1_Shoutout = Team1_Game_Data['Shoutout'].iloc[0]
                 Team_Goals_Allowed = Team1_Game_Data['Goals_Allowed'].iloc[0]
@@ -318,9 +280,9 @@ def Player_Data_Entry_Form(current_date):
                     "Game_Result": Team1_Game_Result,
                     "Shoutout": Team1_Shoutout,
                     "Plus/Minus": Plus_Minus,
-                    "Saves": Saves,
                     "Goalie_Goals Allowed": Goalie_Goals_Allowed,
                     "Goalie_Shots_Allowed": Goalie_Shots_Allowed,
+                    "Goalie_Saves": Goalie_Saves,
                     "Team_Goals_Allowed": Team_Goals_Allowed,
                     "Team_Shots_Allowed": Team_Shots_Allowed,
                     "Team_GF": Team_GF,
@@ -335,17 +297,12 @@ def Player_Data_Entry_Form(current_date):
                 cols = st.columns(gap="medium", spec=[7, 5, 5])
 
                 Team_2_Skater_Name = cols[0].selectbox(
-                    "Name", Team_2_Roster["Skater_Name"],
-                    key=f"Teams2_Player_Name_Select_{Week}_{Game_Number}_{i}"
-                )
-                Team_2_Skater_Type = cols[0].selectbox(
-                    "Type", ("Skater", "Goalie"),
-                    key=f"Teams2_Player_Type_Select_{Week}_{Game_Number}_{i}"
-                )
+                    "Name", Team_2_Roster["Skater_Name"], placeholder=None,key=f"Teams2_Player_Name_Select_{Week}_{Game_Number}_{i}")
+                
+                Team_2_Skater_Type = PHL_Roster.loc[PHL_Roster['Skater_Name'] == Team_2_Skater_Name]['Skater_Type'].values[0]
+                
                 Team_2_Skater_Position = cols[0].selectbox(
-                    "Pos", Puck_Positions,
-                    key=f"Teams2_Player_Pos_Select_{Week}_{Game_Number}_{i}"
-                )
+                    "Pos", Puck_Positions, placeholder=None,key=f"Teams2_Player_Pos_Select_{Week}_{Game_Number}_{i}")
 
                 Team_2_Goals = cols[1].number_input(
                     "Goals", min_value=0, step=1,
@@ -368,7 +325,7 @@ def Player_Data_Entry_Form(current_date):
                     "Shots Allowed - Goalie Only", min_value=0, step=1,
                     key=f"team2_goalie_shots_allowed_{Week}_{Game_Number}_{i}"
                 )
-                Saves = cols[2].number_input(
+                Goalie_Saves = cols[2].number_input(
                     "Saves - Goalie Only", min_value=0, step=1,
                     key=f"team2_saves_{Week}_{Game_Number}_{i}"
                 )
@@ -393,9 +350,9 @@ def Player_Data_Entry_Form(current_date):
                     "Game_Result": Team2_Game_Result,
                     "Shoutout": Team2_Shoutout,
                     "Plus/Minus": Plus_Minus,
-                    "Saves": Saves,
                     "Goalie_Goals Allowed": Goalie_Goals_Allowed,
                     "Goalie_Shots_Allowed": Goalie_Shots_Allowed,
+                    "Goalie_Saves": Goalie_Saves,
                     "Team_Goals_Allowed": Team_Goals_Allowed,
                     "Team_Shots_Allowed": Team_Shots_Allowed,
                     "Team_GF": Team_GF,
@@ -428,14 +385,19 @@ def Player_Data_Entry_Form(current_date):
     else:
         st.warning("Please select both teams, week, and game number to continue.")
 
-
 def home_page():
     st.markdown(f"<h1 style='text-align: center;'>PHL Data Entry Website</h1>", unsafe_allow_html=True)
     st.markdown(f"<h2 style='text-align: center;'>Season 3 - Version 1.0</h2>", unsafe_allow_html=True)
+    
+    #CSV Uploaded Files Throught GitHub
+    PHL_Teams_URL = "https://raw.githubusercontent.com/Jumba123/PHL_Data_Entry_App/refs/heads/main/PHL_Teams.csv"
+    PHL_Teams = test_load_or_init_csv(PHL_Teams_URL, "PHL_Teams")
+    PHL_Roster_URL = "https://raw.githubusercontent.com/Jumba123/PHL_Data_Entry_App/refs/heads/main/PHL_Roster.csv"
+    PHL_Roster = test_load_or_init_csv(PHL_Roster_URL, "PHL_Roster")
 
     # Upload 4 csv files and store in session_state
-    PHL_Teams = load_or_init_csv("Upload PHL_Teams CSV", "PHL_Teams")
-    PHL_Roster = load_or_init_csv("Upload PHL_Roster CSV", "PHL_Roster")
+    # PHL_Teams = load_or_init_csv("Upload PHL_Teams CSV", "PHL_Teams")
+    # PHL_Roster = load_or_init_csv("Upload PHL_Roster CSV", "PHL_Roster")
     st.markdown("---")  # horizontal separator
     team_game_data = load_or_init_csv("Upload Raw_Team_Data CSV", "team_game_data")
     player_game_data = load_or_init_csv("Upload Raw_Player_Data CSV", "player_game_data")
@@ -444,10 +406,10 @@ def home_page():
 
     # Optionally show the uploaded CSV preview
     if not PHL_Teams.empty:
-        if st.checkbox("Show Team Preview", key="show_PHL_Teams_preview"):
+        if st.checkbox("Show All PHL Team Data ", key="show_PHL_Teams_preview"):
             st.dataframe(PHL_Teams.style.hide(axis="index"))
     if not PHL_Roster.empty:
-        if st.checkbox("Show Roster Preview", key="show_PHL_Roster_preview"):
+        if st.checkbox("Show PHL Roster Data", key="show_PHL_Roster_preview"):
             st.dataframe(PHL_Roster.style.hide(axis="index"))
     if not team_game_data.empty:
         if st.checkbox("Show Team Game Data Preview", key="show_team_data_preview"):
@@ -463,7 +425,6 @@ def main():
     if all([
     'PHL_Teams' in st.session_state and not st.session_state['PHL_Teams'].empty,
     'PHL_Roster' in st.session_state and not st.session_state['PHL_Roster'].empty,
-    'team_game_data' in st.session_state and not st.session_state['team_game_data'].empty,
     ]):
         Team_Data_Entry_Form(current_date)
         Player_Data_Entry_Form(current_date)
@@ -472,6 +433,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# streamlit run .\PHL_Data_Entry_App.py
-# streamlit run e:/Python Programs/New_PHL/app.py
