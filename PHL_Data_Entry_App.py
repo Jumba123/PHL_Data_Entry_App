@@ -176,14 +176,17 @@ def Player_Data_Entry_Form(current_date):
     team_cols = st.columns(2)
     with team_cols[0]:
         player_team1_selection = st.selectbox(
-            "Choose Team #1", PHL_Teams['Team_Name'], index=None,placeholder="Please Select Team", key="Team1_Player_Select")
-        player_team1_code = (
-            PHL_Teams.loc[PHL_Teams['Team_Name'] == player_team1_selection, 'Team_Code'].values[0])
+            "Choose Team #1", PHL_Teams['Team_Name'], index=None, placeholder="Please Select Team", key="Team1_Player_Select"
+        )
+        filtered_team1 = PHL_Teams.loc[PHL_Teams['Team_Name'] == player_team1_selection, 'Team_Code']
+        player_team1_code = filtered_team1.values[0] if not filtered_team1.empty else None
+
     with team_cols[1]:
         player_team2_selection = st.selectbox(
-            "Choose Team #2", PHL_Teams['Team_Name'], index=None,placeholder="Please Select Team", key="Team2_Player_Select")
-        player_team2_code = (
-            PHL_Teams.loc[PHL_Teams['Team_Name'] == player_team2_selection, 'Team_Code'].values[0])
+            "Choose Team #2", PHL_Teams['Team_Name'], index=None, placeholder="Please Select Team", key="Team2_Player_Select"
+        )
+        filtered_team2 = PHL_Teams.loc[PHL_Teams['Team_Name'] == player_team2_selection, 'Team_Code']
+        player_team2_code = filtered_team2.values[0] if not filtered_team2.empty else None
 
     # Week and Game Number inputs
     detail_cols = st.columns(2)
